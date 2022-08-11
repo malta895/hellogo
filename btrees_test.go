@@ -22,7 +22,7 @@ func TestTree1Tree2AreNotEqual(t *testing.T) {
 }
 
 func TestTree2Tree2AreEqual(t *testing.T) {
-	t1 := tree.Npew(2)
+	t1 := tree.New(2)
 	t2 := tree.New(2)
 	found := Same(t1, t2)
 	assert.True(t, found)
