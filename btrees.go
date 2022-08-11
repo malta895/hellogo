@@ -1,4 +1,4 @@
-package btrees
+package main
 
 import (
 	"fmt"
