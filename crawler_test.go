@@ -83,3 +83,28 @@ not found: https://golang.org/cmd/
 	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/"])
 	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/pkg/"])
 }
+
+func TestCorrectUrlsCrawledAndCachedOrderIgnored(t *testing.T) {
+	found := Crawl("https://golang.org/", 4, fetcher)
+	expectedUrls := []string{
+		`found: https://golang.org/ "The Go Programming Language"`,
+		`found: https://golang.org/pkg/ "Packages"`,
+		`found: https://golang.org/ "The Go Programming Language"`,
+		`found: https://golang.org/pkg/ "Packages"`,
+		`not found: https://golang.org/cmd/`,
+		`not found: https://golang.org/cmd/`,
+		`found: https://golang.org/pkg/fmt/ "Package fmt"`,
+		`found: https://golang.org/ "The Go Programming Language"`,
+		`found: https://golang.org/pkg/ "Packages"`,
+		`found: https://golang.org/pkg/os/ "Package os"`,
+		`found: https://golang.org/ "The Go Programming Language"`,
+		`found: https://golang.org/pkg/ "Packages"`,
+		`not found: https://golang.org/cmd/`,
+	}
+	for _, expectedUrl := range expectedUrls {
+		assert.Contains(t, found, expectedUrl)
+	}
+
+	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/"])
+	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/pkg/"])
+}

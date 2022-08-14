@@ -13,7 +13,7 @@ type Fetcher interface {
 
 var fetchedUrlsCache sync.Map
 
-type result struct {
+type fetchOkResult struct {
 	body string
 	urls []string
 }
@@ -22,15 +22,13 @@ type result struct {
 // pages starting with url, to a maximum of depth.
 func Crawl(url string, depth int, fetcher Fetcher) string {
 	// TODO: Fetch URLs in parallel.
-	// TODO: Don't fetch the same URL twice.
-	// This implementation doesn't do either:
 	if depth <= 0 {
 		return ""
 	}
 	var body string
 	var urls []string
 	if cachedResult, ok := fetchedUrlsCache.Load(url); ok {
-		castedResult := cachedResult.(result)
+		castedResult := cachedResult.(fetchOkResult)
 		body = castedResult.body
 		urls = castedResult.urls
 	} else {
@@ -39,7 +37,7 @@ func Crawl(url string, depth int, fetcher Fetcher) string {
 		if err != nil {
 			return fmt.Sprintln(err)
 		}
-		fetchedUrlsCache.Store(url, result{
+		fetchedUrlsCache.Store(url, fetchOkResult{
 			body, urls,
 		})
 	}
