@@ -80,8 +80,12 @@ found: https://golang.org/pkg/ "Packages"
 not found: https://golang.org/cmd/
 `
 	assert.Equal(t, expected, found)
+
 	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/"])
 	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/pkg/"])
+	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/cmd/"])
+	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/pkg/fmt/"])
+	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/pkg/os/"])
 }
 
 func TestCorrectUrlsCrawledAndCachedOrderIgnored(t *testing.T) {
@@ -104,7 +108,12 @@ func TestCorrectUrlsCrawledAndCachedOrderIgnored(t *testing.T) {
 	for _, expectedUrl := range expectedUrls {
 		assert.Contains(t, found, expectedUrl)
 	}
+	assert.NotContains(t, found, `found: https://golang.org/cmd/ ""`)
 
 	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/"])
 	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/pkg/"])
+	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/pkg/fmt/"])
+	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/pkg/os/"])
+	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/cmd/"])
+
 }

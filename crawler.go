@@ -16,6 +16,7 @@ var fetchedUrlsCache sync.Map
 type fetchOkResult struct {
 	body string
 	urls []string
+	err  error
 }
 
 // Crawl uses fetcher to recursively crawl
@@ -29,16 +30,22 @@ func Crawl(url string, depth int, fetcher Fetcher) string {
 	var urls []string
 	if cachedResult, ok := fetchedUrlsCache.Load(url); ok {
 		castedResult := cachedResult.(fetchOkResult)
+		if castedResult.err != nil {
+			return fmt.Sprintln(castedResult.err)
+		}
 		body = castedResult.body
 		urls = castedResult.urls
 	} else {
 		var err error
 		body, urls, err = fetcher.Fetch(url)
 		if err != nil {
+			fetchedUrlsCache.Store(url, fetchOkResult{
+				"", nil, err,
+			})
 			return fmt.Sprintln(err)
 		}
 		fetchedUrlsCache.Store(url, fetchOkResult{
-			body, urls,
+			body, urls, nil,
 		})
 	}
 
