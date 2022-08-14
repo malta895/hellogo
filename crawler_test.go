@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
@@ -63,7 +64,7 @@ var fetcher = fakeFetcher{
 	},
 }
 
-func SkipTestCorrectUrlsCrawledAndCached(t *testing.T) {
+func TestCorrectUrlsCrawledAndCached(t *testing.T) {
 	found := Crawl("https://golang.org/", 4, fetcher)
 	expected := `found: https://golang.org/ "The Go Programming Language"
 found: https://golang.org/pkg/ "Packages"
@@ -90,6 +91,7 @@ not found: https://golang.org/cmd/
 
 func TestCorrectUrlsCrawledAndCachedOrderIgnored(t *testing.T) {
 	found := Crawl("https://golang.org/", 4, fetcher)
+	foundArray := strings.Split(found, "\n")
 	expectedUrls := []string{
 		`found: https://golang.org/ "The Go Programming Language"`,
 		`found: https://golang.org/pkg/ "Packages"`,
@@ -106,8 +108,10 @@ func TestCorrectUrlsCrawledAndCachedOrderIgnored(t *testing.T) {
 		`not found: https://golang.org/cmd/`,
 	}
 	for _, expectedUrl := range expectedUrls {
-		assert.Contains(t, found, expectedUrl)
+		assert.Contains(t, foundArray, expectedUrl)
 	}
+	assert.Equal(t, len(expectedUrls), len(foundArray))
+
 	assert.NotContains(t, found, `found: https://golang.org/cmd/ ""`)
 
 	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/"])
