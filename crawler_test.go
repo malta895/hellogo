@@ -7,10 +7,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func main() {
-	Crawl("https://golang.org/", 4, fetcher)
-}
-
 // fakeFetcher is Fetcher that returns canned results.
 type fakeFetcher map[string]*fakeResult
 
@@ -19,7 +15,14 @@ type fakeResult struct {
 	urls []string
 }
 
+var fakeFetcherCalls = make(map[string]int)
+
 func (f fakeFetcher) Fetch(url string) (string, []string, error) {
+	if _, ok := fakeFetcherCalls[url]; ok {
+		fakeFetcherCalls[url]++
+	} else {
+		fakeFetcherCalls[url] = 1
+	}
 	if res, ok := f[url]; ok {
 		return res.body, res.urls, nil
 	}
@@ -60,7 +63,7 @@ var fetcher = fakeFetcher{
 	},
 }
 
-func TestCorrectUrlsCrawled(t *testing.T) {
+func TestCorrectUrlsCrawledAndCached(t *testing.T) {
 	found := Crawl("https://golang.org/", 4, fetcher)
 	expected := `found: https://golang.org/ "The Go Programming Language"
 found: https://golang.org/pkg/ "Packages"
@@ -77,4 +80,6 @@ found: https://golang.org/pkg/ "Packages"
 not found: https://golang.org/cmd/
 `
 	assert.Equal(t, expected, found)
+	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/"])
+	assert.Equal(t, 1, fakeFetcherCalls["https://golang.org/pkg/"])
 }
