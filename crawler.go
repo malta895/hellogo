@@ -11,48 +11,71 @@ type Fetcher interface {
 	Fetch(url string) (body string, urls []string, err error)
 }
 
-var fetchedUrlsCache sync.Map
-
-type fetchOkResult struct {
+type fetchResult struct {
 	body string
 	urls []string
 	err  error
 }
 
+var fetchedUrlsCache sync.Map
+
 // Crawl uses fetcher to recursively crawl
 // pages starting with url, to a maximum of depth.
 func Crawl(url string, depth int, fetcher Fetcher) string {
-	// TODO: Fetch URLs in parallel.
-	if depth <= 0 {
-		return ""
-	}
-	var body string
-	var urls []string
-	if cachedResult, ok := fetchedUrlsCache.Load(url); ok {
-		castedResult := cachedResult.(fetchOkResult)
-		if castedResult.err != nil {
-			return fmt.Sprintln(castedResult.err)
+	var crawlHelper func(url string, depth int, fetcher Fetcher, fetchedChannel chan string, quit chan int)
+
+	crawlHelper = func(url string, depth int, fetcher Fetcher, fetchedChannel chan string, quit chan int) {
+		if depth <= 0 {
+			quit <- 0
+			return
 		}
-		body = castedResult.body
-		urls = castedResult.urls
-	} else {
-		var err error
-		body, urls, err = fetcher.Fetch(url)
-		if err != nil {
-			fetchedUrlsCache.Store(url, fetchOkResult{
-				"", nil, err,
+
+		var body string
+		var urls []string
+
+		if cachedResult, ok := fetchedUrlsCache.Load(url); ok {
+			castedResult := cachedResult.(fetchResult)
+			if castedResult.err != nil {
+				fetchedChannel <- fmt.Sprintln(castedResult.err)
+				return
+			}
+			body = castedResult.body
+			urls = castedResult.urls
+		} else {
+			var err error
+			body, urls, err = fetcher.Fetch(url)
+			if err != nil {
+				fetchedUrlsCache.Store(url, fetchResult{
+					"", nil, err,
+				})
+				fetchedChannel <- fmt.Sprintln(err)
+				return
+			}
+			fetchedUrlsCache.Store(url, fetchResult{
+				body, urls, nil,
 			})
-			return fmt.Sprintln(err)
 		}
-		fetchedUrlsCache.Store(url, fetchOkResult{
-			body, urls, nil,
-		})
+		foundUrl := fmt.Sprintf("found: %s %q\n", url, body)
+		fetchedChannel <- foundUrl
+		for _, u := range urls {
+			go crawlHelper(u, depth-1, fetcher, fetchedChannel, quit)
+		}
 	}
 
-	foundUrl := fmt.Sprintf("found: %s %q\n", url, body)
-	alreadyFetched := foundUrl
-	for _, u := range urls {
-		alreadyFetched += Crawl(u, depth-1, fetcher)
+	fetchedChannel, quit := make(chan string), make(chan int)
+	var foundUrls string
+	go crawlHelper(url, depth, fetcher, fetchedChannel, quit)
+	for {
+		select {
+		case foundUrl := <-fetchedChannel:
+			fmt.Printf("Found url %v\n", foundUrl)
+			foundUrls += foundUrl
+		case <-quit:
+			fmt.Println("Received quit signal")
+			return foundUrls
+		default:
+			fmt.Println("default case of select")
+		}
 	}
-	return alreadyFetched
+	return foundUrls
 }
